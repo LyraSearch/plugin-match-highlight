@@ -1,6 +1,6 @@
 import { insertWithHooks } from "@lyrasearch/lyra";
 import t from "tap";
-import { createWithHighlight, afterInsert } from "../src";
+import { createWithHighlight, afterInsert, searchWithHighlight } from "../src";
 
 t.test("it should store the position of tokens", t => {
   t.plan(1);
@@ -13,7 +13,9 @@ t.test("it should store the position of tokens", t => {
 
   insertWithHooks(db, { text: "hello world" });
 
-  t.same(db.positions[Object.keys(db.docs)[0]], { text: { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] } });
+  t.same(db.positions[Object.keys(db.docs)[0]], {
+    text: { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] },
+  });
 });
 
 t.test("it should manage nested schemas", t => {
@@ -29,7 +31,9 @@ t.test("it should manage nested schemas", t => {
 
   insertWithHooks(db, { other: { text: "hello world" } });
 
-  t.same(db.positions[Object.keys(db.docs)[0]], { "other.text": { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] } });
+  t.same(db.positions[Object.keys(db.docs)[0]], {
+    "other.text": { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] },
+  });
 });
 
 t.test("it should handle stemmed tokens", t => {
@@ -43,5 +47,21 @@ t.test("it should handle stemmed tokens", t => {
 
   insertWithHooks(db, { text: "hello personalization" });
 
-  t.same(db.positions[Object.keys(db.docs)[0]], { text: { hello: [{ start: 0, length: 5 }], person: [{ start: 6, length: 15 }] } });
+  t.same(db.positions[Object.keys(db.docs)[0]], {
+    text: { hello: [{ start: 0, length: 5 }], person: [{ start: 6, length: 15 }] },
+  });
+});
+
+t.test("should retrieve positions", t => {
+  t.plan(1);
+
+  const schema = {
+    text: "string",
+  } as const;
+
+  const db = createWithHighlight({ schema, hooks: { afterInsert } });
+
+  insertWithHooks(db, { text: "hello world" });
+
+  t.same(searchWithHighlight(db, { term: "hello" })[0].positions, { text: { hello: [{ start: 0, length: 5 }] } });
 });

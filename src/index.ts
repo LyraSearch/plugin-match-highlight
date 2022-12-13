@@ -1,4 +1,14 @@
-import { Configuration, create, Lyra, PropertiesSchema, tokenize } from "@lyrasearch/lyra";
+import {
+  Configuration,
+  create,
+  Lyra,
+  PropertiesSchema,
+  RetrievedDoc,
+  search,
+  SearchParams,
+  tokenize,
+} from "@lyrasearch/lyra";
+import { Language } from "@lyrasearch/lyra/dist/esm/src/tokenizer/languages";
 import { ResolveSchema } from "@lyrasearch/lyra/dist/esm/src/types";
 
 export type Position = {
@@ -7,7 +17,11 @@ export type Position = {
 };
 
 export type LyraWithHighlight<S extends PropertiesSchema> = Lyra<S> & {
-  positions: { [id: string]: { [property: string]: { [token: string]: Position[]}}};
+  positions: { [id: string]: { [property: string]: { [token: string]: Position[] } } };
+};
+
+export type SearchResultWithHighlight<S extends PropertiesSchema> = RetrievedDoc<S> & {
+  positions: { [property: string]: { [token: string]: Position[] } };
 };
 
 export function createWithHighlight<S extends PropertiesSchema>(properties: Configuration<S>): LyraWithHighlight<S> {
@@ -62,4 +76,25 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
       }
     });
   }
+}
+
+export function searchWithHighlight<S extends PropertiesSchema>(
+  lyra: LyraWithHighlight<S>,
+  params: SearchParams<S>,
+  language?: Language,
+): SearchResultWithHighlight<S>[] {
+  const result = search(lyra, params, language);
+  const queryTokens = tokenize(params.term);
+  return result.hits.map(hit =>
+    Object.assign(hit, {
+      positions: Object.fromEntries(
+        Object.entries(lyra.positions[hit.id]).map(([propName, tokens]) => [
+          propName,
+          Object.fromEntries(
+            Object.entries(tokens).filter(([token]) => queryTokens.find(queryToken => token.startsWith(queryToken))),
+          ),
+        ]),
+      ),
+    }),
+  );
 }
