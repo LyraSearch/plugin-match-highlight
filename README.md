@@ -1,0 +1,1 @@
+# `@lyrasearch/plugin-match-highlight`
