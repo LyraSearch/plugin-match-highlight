@@ -1,0 +1,89 @@
+{
+  "name": "@lyrasearch/plugin-match-highlight",
+  "version": "0.0.1",
+  "description": "Lyrasearch plugin for search match highlighting",
+  "sideEffects": false,
+  "main": "./dist/cjs/src/index.js",
+  "module": "./dist/esm/src/index.js",
+  "browser": "./dist/browser/src/index.js",
+  "types": "./dist/esm/src/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/cjs/src/index.js",
+      "import": "./dist/esm/src/index.js",
+      "types": "./dist/cjs/src/index.d.ts"
+    },
+    "./dist/*": {
+      "require": "./dist/cjs/*",
+      "import": "./dist/esm/*",
+      "types": "./dist/cjs/**/*.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lyrasearch/plugin-match-highlight"
+  },
+  "bugs": {
+    "url": "https://github.com/lyrasearch/plugin-match-highlight"
+  },
+  "scripts": {
+    "commit": "pnpm lint-staged && cz",
+    "format": "prettier --write src tests",
+    "lint": "pnpm run format && eslint src tests --ext .js,.ts,.mjs,.jsx,.tsx",
+    "prepare": "husky install && npm run build",
+    "build:cjs": "tsc --project tsconfig.cjs.json",
+    "build:module": "tsc --project tsconfig.esm.json",
+    "build:browser": "tsc --project tsconfig.browser.json",
+    "build": "rimraf ./dist && concurrently 'npm:build:module' 'npm:build:cjs' 'npm:build:browser'",
+    "test": "c8 -c tests/config/c8-local.json tap --rcfile=tests/config/tap.yml tests/*.test.ts",
+    "test:ci": "c8 -c tests/config/c8-ci.json tap --rcfile=tests/config/tap.yml --no-color tests/*.test.ts",
+    "ci": "npm run build && npm run test:ci"
+  },
+  "keywords": [
+    "full-text search",
+    "search",
+    "fuzzy search",
+    "typo-tolerant search",
+    "full-text"
+  ],
+  "license": "Apache-2.0",
+  "lint-staged": {
+    "*": "pnpm lint"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^18.6.2",
+    "@types/tap": "^15.0.7",
+    "@typescript-eslint/eslint-plugin": "^5.31.0",
+    "@typescript-eslint/parser": "^5.31.0",
+    "auto-changelog": "^2.4.0",
+    "c8": "^7.12.0",
+    "commitizen": "^4.2.5",
+    "concurrently": "^7.3.0",
+    "eslint": "^8.20.0",
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3",
+    "prettier": "^2.7.1",
+    "rimraf": "^3.0.2",
+    "tap": "^16.3.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.3"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "typescript"
+      ]
+    }
+  },
+  "dependencies": {
+    "@lyrasearch/lyra": "^0.3.1"
+  }
+}
