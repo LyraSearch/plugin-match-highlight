@@ -7,7 +7,7 @@ export type Position = {
 };
 
 export type LyraWithHighlight<S extends PropertiesSchema> = Lyra<S> & {
-  positions: Record<string, Record<string, Position[]>>;
+  positions: { [id: string]: { [property: string]: { [token: string]: Position[]}}};
 };
 
 export function createWithHighlight<S extends PropertiesSchema>(properties: Configuration<S>): LyraWithHighlight<S> {
@@ -27,6 +27,7 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
   prefix = "",
   schema: PropertiesSchema = lyra.schema,
 ) {
+  lyra.positions[id] = {};
   for (const key of Object.keys(doc)) {
     const isNested = typeof doc[key] === "object";
     const isSchemaNested = typeof schema[key] == "object";
@@ -43,12 +44,12 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
     if (!(typeof doc[key] === "string" && key in schema && !isSchemaNested)) {
       continue;
     }
-    lyra.positions[propName] = {};
+    lyra.positions[id][propName] = {};
     const text = doc[key] as string;
     const tokens = tokenize(text);
     tokens.forEach(token => {
-      if (lyra.positions[propName][token] === undefined) {
-        lyra.positions[propName][token] = [];
+      if (lyra.positions[id][propName][token] === undefined) {
+        lyra.positions[id][propName][token] = [];
       }
       const re = new RegExp(`${token}\\w*`, "ig");
       let array;
@@ -56,7 +57,7 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
         const start = array.index;
         const length = re.lastIndex - start;
         if (tokenize(array[0])[0] === token) {
-          lyra.positions[propName][token].push({ start, length });
+          lyra.positions[id][propName][token].push({ start, length });
         }
       }
     });

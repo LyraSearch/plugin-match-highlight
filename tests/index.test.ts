@@ -13,7 +13,7 @@ t.test("it should store the position of tokens", t => {
 
   insertWithHooks(db, { text: "hello world" });
 
-  t.same(db.positions, { text: { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] } });
+  t.same(db.positions[Object.keys(db.docs)[0]], { text: { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] } });
 });
 
 t.test("it should manage nested schemas", t => {
@@ -29,7 +29,7 @@ t.test("it should manage nested schemas", t => {
 
   insertWithHooks(db, { other: { text: "hello world" } });
 
-  t.same(db.positions, { "other.text": { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] } });
+  t.same(db.positions[Object.keys(db.docs)[0]], { "other.text": { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] } });
 });
 
 t.test("it should handle stemmed tokens", t => {
@@ -43,5 +43,5 @@ t.test("it should handle stemmed tokens", t => {
 
   insertWithHooks(db, { text: "hello personalization" });
 
-  t.same(db.positions, { text: { hello: [{ start: 0, length: 5 }], person: [{ start: 6, length: 15 }] } });
+  t.same(db.positions[Object.keys(db.docs)[0]], { text: { hello: [{ start: 0, length: 5 }], person: [{ start: 6, length: 15 }] } });
 });
