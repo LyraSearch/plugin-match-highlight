@@ -1,12 +1,5 @@
-import {
-  defaultTokenizerConfig,
-  Lyra,
-  PropertiesSchema,
-  RetrievedDoc,
-  search,
-  SearchParams,
-  tokenize
-} from "@lyrasearch/lyra";
+import { Lyra, PropertiesSchema, RetrievedDoc, search, SearchParams, tokenize } from "@lyrasearch/lyra";
+import { normalizationCache } from "@lyrasearch/lyra/dist/cjs/src/tokenizer";
 import { Language } from "@lyrasearch/lyra/dist/cjs/src/tokenizer/languages";
 import { ResolveSchema } from "@lyrasearch/lyra/dist/cjs/src/types";
 
@@ -23,17 +16,14 @@ export type SearchResultWithHighlight<S extends PropertiesSchema> = RetrievedDoc
   positions: { [property: string]: { [token: string]: Position[] } };
 };
 
-// export function createWithHighlight<S extends PropertiesSchema>(properties: Configuration<S>): LyraWithHighlight<S> {
-//   const lyra = create(properties);
-//   return Object.assign(lyra, { positions: {} });
-// }
-
 export function afterInsert<S extends PropertiesSchema>(this: Lyra<S> | LyraWithHighlight<S>, id: string) {
   if (!("positions" in this)) {
     Object.assign(this, { positions: {} });
   }
   recursivePositionInsertion(this as LyraWithHighlight<S>, this.docs[id]!, id);
 }
+
+const wordRegEx = /[\p{L}0-9_'-]+/gimu;
 
 function recursivePositionInsertion<S extends PropertiesSchema>(
   lyra: LyraWithHighlight<S>,
@@ -61,21 +51,25 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
     }
     lyra.positions[id][propName] = {};
     const text = doc[key] as string;
-    const tokens = tokenizeWithoutStemming(text);
-    tokens.forEach(token => {
+    let regExResult;
+    while ((regExResult = wordRegEx.exec(text)) !== null) {
+      const word = regExResult[0].toLowerCase();
+      const key = `english:${word}`;
+      let token: string;
+      if (normalizationCache.has(key)) {
+        token = normalizationCache.get(key)!;
+        /* c8 ignore next 4 */
+      } else {
+        [token] = tokenize(word);
+        normalizationCache.set(key, token);
+      }
       if (lyra.positions[id][propName][token] === undefined) {
         lyra.positions[id][propName][token] = [];
       }
-      const re = new RegExp(`${token}\\w*`, "ig");
-      let array;
-      while ((array = re.exec(text)) !== null) {
-        const start = array.index;
-        const length = re.lastIndex - start;
-        if (tokenizeWithoutStemming(array[0])[0] === token) {
-          lyra.positions[id][propName][token].push({ start, length });
-        }
-      }
-    });
+      const start = regExResult.index;
+      const length = regExResult[0].length;
+      lyra.positions[id][propName][token].push({ start, length });
+    }
   }
 }
 
@@ -85,7 +79,7 @@ export function searchWithHighlight<S extends PropertiesSchema>(
   language?: Language,
 ): SearchResultWithHighlight<S>[] {
   const result = search(lyra, params, language);
-  const queryTokens = tokenizeWithoutStemming(params.term);
+  const queryTokens = tokenize(params.term);
   return result.hits.map(hit =>
     Object.assign(hit, {
       positions: Object.fromEntries(
@@ -99,9 +93,3 @@ export function searchWithHighlight<S extends PropertiesSchema>(
     }),
   );
 }
-
-function tokenizeWithoutStemming(text: string, language: Language = "english") {
-  return tokenize(text, language, false, tokenizer);
-}
-
-export const tokenizer = { ...defaultTokenizerConfig("english"), enableStemming: false };
