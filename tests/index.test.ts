@@ -1,6 +1,6 @@
-import { insertWithHooks } from "@lyrasearch/lyra";
+import { create, insertWithHooks } from "@lyrasearch/lyra";
 import t from "tap";
-import { createWithHighlight, afterInsert, searchWithHighlight } from "../src";
+import { afterInsert, LyraWithHighlight, searchWithHighlight, tokenizer } from "../src";
 
 t.test("it should store the position of tokens", t => {
   t.plan(1);
@@ -9,7 +9,7 @@ t.test("it should store the position of tokens", t => {
     text: "string",
   } as const;
 
-  const db = createWithHighlight({ schema, hooks: { afterInsert } });
+  const db = create({ schema, hooks: { afterInsert }, tokenizer }) as LyraWithHighlight<typeof schema>;
 
   insertWithHooks(db, { text: "hello world" });
 
@@ -27,7 +27,7 @@ t.test("it should manage nested schemas", t => {
     },
   } as const;
 
-  const db = createWithHighlight({ schema, hooks: { afterInsert } });
+  const db = create({ schema, hooks: { afterInsert }, tokenizer }) as LyraWithHighlight<typeof schema>;
 
   insertWithHooks(db, { other: { text: "hello world" } });
 
@@ -36,19 +36,19 @@ t.test("it should manage nested schemas", t => {
   });
 });
 
-t.test("it should handle stemmed tokens", t => {
+t.test("it shouldn't stem tokens", t => {
   t.plan(1);
 
   const schema = {
     text: "string",
   } as const;
 
-  const db = createWithHighlight({ schema, hooks: { afterInsert } });
+  const db = create({ schema, hooks: { afterInsert }, tokenizer }) as LyraWithHighlight<typeof schema>;
 
   insertWithHooks(db, { text: "hello personalization" });
 
   t.same(db.positions[Object.keys(db.docs)[0]], {
-    text: { hello: [{ start: 0, length: 5 }], person: [{ start: 6, length: 15 }] },
+    text: { hello: [{ start: 0, length: 5 }], personalization: [{ start: 6, length: 15 }] },
   });
 });
 
@@ -59,7 +59,7 @@ t.test("should retrieve positions", t => {
     text: "string",
   } as const;
 
-  const db = createWithHighlight({ schema, hooks: { afterInsert } });
+  const db = create({ schema, hooks: { afterInsert }, tokenizer }) as LyraWithHighlight<typeof schema>;
 
   insertWithHooks(db, { text: "hello world" });
 

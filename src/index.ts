@@ -1,15 +1,14 @@
 import {
-  Configuration,
-  create,
+  defaultTokenizerConfig,
   Lyra,
   PropertiesSchema,
   RetrievedDoc,
   search,
   SearchParams,
-  tokenize,
+  tokenize
 } from "@lyrasearch/lyra";
-import { Language } from "@lyrasearch/lyra/dist/esm/src/tokenizer/languages";
-import { ResolveSchema } from "@lyrasearch/lyra/dist/esm/src/types";
+import { Language } from "@lyrasearch/lyra/dist/cjs/src/tokenizer/languages";
+import { ResolveSchema } from "@lyrasearch/lyra/dist/cjs/src/types";
 
 export type Position = {
   start: number;
@@ -24,14 +23,16 @@ export type SearchResultWithHighlight<S extends PropertiesSchema> = RetrievedDoc
   positions: { [property: string]: { [token: string]: Position[] } };
 };
 
-export function createWithHighlight<S extends PropertiesSchema>(properties: Configuration<S>): LyraWithHighlight<S> {
-  const lyra = create(properties);
-  return Object.assign(lyra, { positions: {} });
-}
+// export function createWithHighlight<S extends PropertiesSchema>(properties: Configuration<S>): LyraWithHighlight<S> {
+//   const lyra = create(properties);
+//   return Object.assign(lyra, { positions: {} });
+// }
 
-export function afterInsert<S extends PropertiesSchema>(this: Lyra<S>, id: string) {
-  const lyra = this as LyraWithHighlight<S>;
-  recursivePositionInsertion(lyra, lyra.docs[id]!, id);
+export function afterInsert<S extends PropertiesSchema>(this: Lyra<S> | LyraWithHighlight<S>, id: string) {
+  if (!("positions" in this)) {
+    Object.assign(this, { positions: {} });
+  }
+  recursivePositionInsertion(this as LyraWithHighlight<S>, this.docs[id]!, id);
 }
 
 function recursivePositionInsertion<S extends PropertiesSchema>(
@@ -60,7 +61,7 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
     }
     lyra.positions[id][propName] = {};
     const text = doc[key] as string;
-    const tokens = tokenize(text);
+    const tokens = tokenizeWithoutStemming(text);
     tokens.forEach(token => {
       if (lyra.positions[id][propName][token] === undefined) {
         lyra.positions[id][propName][token] = [];
@@ -70,7 +71,7 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
       while ((array = re.exec(text)) !== null) {
         const start = array.index;
         const length = re.lastIndex - start;
-        if (tokenize(array[0])[0] === token) {
+        if (tokenizeWithoutStemming(array[0])[0] === token) {
           lyra.positions[id][propName][token].push({ start, length });
         }
       }
@@ -84,7 +85,7 @@ export function searchWithHighlight<S extends PropertiesSchema>(
   language?: Language,
 ): SearchResultWithHighlight<S>[] {
   const result = search(lyra, params, language);
-  const queryTokens = tokenize(params.term);
+  const queryTokens = tokenizeWithoutStemming(params.term);
   return result.hits.map(hit =>
     Object.assign(hit, {
       positions: Object.fromEntries(
@@ -98,3 +99,9 @@ export function searchWithHighlight<S extends PropertiesSchema>(
     }),
   );
 }
+
+function tokenizeWithoutStemming(text: string, language: Language = "english") {
+  return tokenize(text, language, false, tokenizer);
+}
+
+export const tokenizer = { ...defaultTokenizerConfig("english"), enableStemming: false };
