@@ -54,7 +54,7 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
     let regExResult;
     while ((regExResult = wordRegEx.exec(text)) !== null) {
       const word = regExResult[0].toLowerCase();
-      const key = `english:${word}`;
+      const key = `${lyra.defaultLanguage}:${word}`;
       let token: string;
       if (normalizationCache.has(key)) {
         token = normalizationCache.get(key)!;
