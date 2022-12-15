@@ -1,6 +1,6 @@
 {
   "name": "@lyrasearch/plugin-match-highlight",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Lyrasearch plugin for search match highlighting",
   "sideEffects": false,
   "main": "./dist/cjs/index.js",
