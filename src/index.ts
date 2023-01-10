@@ -32,7 +32,7 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
   prefix = "",
   schema: PropertiesSchema = lyra.schema,
 ) {
-  lyra.positions[id] = {};
+  lyra.positions[id] = Object.create(null, {});
   for (const key of Object.keys(doc)) {
     const isNested = typeof doc[key] === "object";
     const isSchemaNested = typeof schema[key] == "object";
@@ -49,7 +49,7 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
     if (!(typeof doc[key] === "string" && key in schema && !isSchemaNested)) {
       continue;
     }
-    lyra.positions[id][propName] = {};
+    lyra.positions[id][propName] = Object.create(null, {});
     const text = doc[key] as string;
     let regExResult;
     while ((regExResult = wordRegEx.exec(text)) !== null) {
@@ -63,7 +63,7 @@ function recursivePositionInsertion<S extends PropertiesSchema>(
         [token] = tokenize(word);
         normalizationCache.set(key, token);
       }
-      if (lyra.positions[id][propName][token] === undefined) {
+      if (!Array.isArray(lyra.positions[id][propName][token])) {
         lyra.positions[id][propName][token] = [];
       }
       const start = regExResult.index;

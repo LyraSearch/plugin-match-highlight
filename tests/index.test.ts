@@ -1,4 +1,4 @@
-import { create, insertWithHooks } from "@lyrasearch/lyra";
+import { create, insertWithHooks, search } from "@lyrasearch/lyra";
 import t from "tap";
 import { afterInsert, LyraWithHighlight, searchWithHighlight } from "../src";
 
@@ -57,3 +57,15 @@ t.test("should retrieve positions", async t => {
 
   t.same(searchWithHighlight(db, { term: "hello" })[0].positions, { text: { hello: [{ start: 0, length: 5 }] } });
 });
+
+t.test("should work with texts containing constructor and __proto__ properties", async t => {
+  const schema = {
+    text: "string",
+  } as const;
+
+  const db = create({ schema, hooks: { afterInsert } }) as LyraWithHighlight<typeof schema>;
+
+  insertWithHooks(db, { text: "constructor __proto__" });
+
+  t.same(searchWithHighlight(db, { term: "constructor" })[0].positions, { text: { constructor: [{ start: 0, length: 11 }] } });
+})
